@@ -5,11 +5,11 @@ description: >
   (github.com/gasmod/gas-cache) — the caching service for the Gas ecosystem.
   Use this skill when writing, reviewing, or debugging Go code that uses
   gas-cache for key-value caching with in-memory or Valkey (Redis-compatible)
-  backends. Covers the memory and valkey sub-packages, gas.CacheProvider
-  implementation, sentinel errors, DI wiring, configuration binding,
-  background cleanup, TTL handling, max entries enforcement, connection retry
-  with exponential backoff, and direct Valkey client access. Make sure to use
-  this skill whenever working with caching in the Gas ecosystem, even if the
+  backends. Covers the memory and valkey sub-packages, cachetest mock,
+  gas.CacheProvider implementation, sentinel errors, DI wiring, configuration
+  binding, background cleanup, TTL handling, max entries enforcement, connection
+  retry with exponential backoff, and direct Valkey client access. Make sure to
+  use this skill whenever working with caching in the Gas ecosystem, even if the
   user doesn't explicitly mention gas-cache — any code that imports
   gasmod/gas-cache or references gas.CacheProvider should trigger this skill.
 ---
@@ -23,6 +23,7 @@ implementations — an in-memory backend and a Valkey (Redis-compatible) backend
 import cache "github.com/gasmod/gas-cache"
 import cachemem "github.com/gasmod/gas-cache/memory"
 import cachevk "github.com/gasmod/gas-cache/valkey"
+import "github.com/gasmod/gas-cache/cachetest"
 ```
 
 ## Backends
@@ -179,6 +180,35 @@ func DefaultConfig() *Config
 func (c *Config) Validate() error  // rejects empty Addr
 ```
 
+## Test Mock
+
+The `cachetest` package provides `MockCache`, a configurable mock of
+`gas.CacheProvider` for use in unit tests.
+
+```go
+import "github.com/gasmod/gas-cache/cachetest"
+```
+
+### MockCache
+
+```go
+type MockCache struct {
+    GetFn    func(ctx context.Context, key string) ([]byte, error)
+    SetFn    func(ctx context.Context, key string, value []byte, ttl time.Duration) error
+    DeleteFn func(ctx context.Context, key string) error
+    ExistsFn func(ctx context.Context, key string) (bool, error)
+    Calls    []Call
+}
+```
+
+Each method delegates to its `Fn` field if set, otherwise returns zero value.
+All calls are recorded in `Calls` for assertions. Thread-safe.
+
+| Method                  | Description                               |
+|-------------------------|-------------------------------------------|
+| `Reset()`               | Clear all recorded calls                  |
+| `CallCount(method) int` | Count calls by method name (e.g. `"Get"`) |
+
 ## DI Wiring Patterns
 
 ### Memory backend (dev/test)
@@ -247,4 +277,15 @@ gas.WithSingletonService[*cachemem.Service](cachemem.New())
 
 // Production
 gas.WithSingletonService[*cachevk.Service](cachevk.New())
+```
+
+### Testing with MockCache
+
+```go
+mock := &cachetest.MockCache{}
+mock.GetFn = func(ctx context.Context, key string) ([]byte, error) {
+    return []byte("hello"), nil
+}
+
+// inject mock as gas.CacheProvider in tests
 ```

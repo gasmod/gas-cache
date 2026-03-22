@@ -146,6 +146,25 @@ via DI. This lets you drive cache settings from environment variables or a confi
 | `Cache.ConnRetries`       | `0`              | Number of connection retry attempts (0 = no retries)     |
 | `Cache.ConnRetryInterval` | `2s`             | Base retry interval; doubles each attempt (exp. backoff) |
 
+## Testing
+
+The `cachetest` package provides a mock implementation of `gas.CacheProvider`:
+
+```go
+import "github.com/gasmod/gas-cache/cachetest"
+
+mock := &cachetest.MockCache{}
+mock.GetFn = func(ctx context.Context, key string) ([]byte, error) {
+	return []byte("hello"), nil
+}
+
+// pass mock as gas.CacheProvider
+// assert calls:
+if mock.CallCount("Get") != 1 {
+	t.Error("expected one Get call")
+}
+```
+
 ## Sentinel Errors
 
 The root `cache` package defines two sentinel errors used by both backends:
