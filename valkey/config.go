@@ -70,5 +70,8 @@ func (c *Config) Validate() error {
 	if c.Cache.Addr == "" {
 		return errors.New("Cache.Addr must not be empty")
 	}
+	if c.Cache.DB < 0 {
+		return errors.New("Cache.DB must be >= 0")
+	}
 	return nil
 }

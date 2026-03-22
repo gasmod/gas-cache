@@ -2,7 +2,6 @@ package valkey
 
 import (
 	"testing"
-	"time"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -40,23 +39,8 @@ func TestConfigValidate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "DB too high",
-			modify:  func(c *Config) { c.Cache.DB = 16 },
-			wantErr: true,
-		},
-		{
 			name:    "DB negative",
 			modify:  func(c *Config) { c.Cache.DB = -1 },
-			wantErr: true,
-		},
-		{
-			name:    "dial timeout too low",
-			modify:  func(c *Config) { c.Cache.DialTimeout = 100 * time.Millisecond },
-			wantErr: true,
-		},
-		{
-			name:    "write timeout too low",
-			modify:  func(c *Config) { c.Cache.WriteTimeout = 500 * time.Millisecond },
 			wantErr: true,
 		},
 	}

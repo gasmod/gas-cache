@@ -8,6 +8,9 @@ help: ## Display this help screen
 test: ## Run tests
 	go test -race -parallel $(shell getconf _NPROCESSORS_ONLN) ./...
 
+test-short: ## Run short tests
+	go test -short -race -parallel $(shell getconf _NPROCESSORS_ONLN) ./...
+
 test-coverage: ## Run tests with coverage
 	go test -v -race -parallel $(shell getconf _NPROCESSORS_ONLN) -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
