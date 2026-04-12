@@ -14,7 +14,7 @@ exclude (
 )
 
 require (
-	github.com/gasmod/gas v0.2.24
+	github.com/gasmod/gas v0.2.25
 	github.com/gasmod/gas-config v0.2.2
 	github.com/testcontainers/testcontainers-go v0.42.0
 	github.com/valkey-io/valkey-go v1.0.74
