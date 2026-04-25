@@ -29,6 +29,8 @@ type Service struct {
 
 var _ gas.Service = (*Service)(nil)
 var _ gas.CacheProvider = (*Service)(nil)
+var _ gas.HealthReporter = (*Service)(nil)
+var _ gas.ReadyReporter = (*Service)(nil)
 
 // Option configures a Service.
 type Option func(*Service)
@@ -233,6 +235,28 @@ func (s *Service) Exists(ctx context.Context, key string) (bool, error) {
 		return false, fmt.Errorf("%s: exists %q: %w", s.Name(), key, err)
 	}
 	return n > 0, nil
+}
+
+// CheckHealth reports liveness. The valkey-go client reconnects
+// internally, so a transient network failure is not a liveness failure;
+// only a closed service is.
+func (s *Service) CheckHealth(_ context.Context) error {
+	if s.closed.Load() {
+		return cache.ErrClosed
+	}
+	return nil
+}
+
+// CheckReady reports readiness by pinging the Valkey server with the
+// caller's context.
+func (s *Service) CheckReady(ctx context.Context) error {
+	if s.closed.Load() {
+		return cache.ErrClosed
+	}
+	if err := s.client.Do(ctx, s.client.B().Ping().Build()).Error(); err != nil {
+		return fmt.Errorf("%s: ping: %w", s.Name(), err)
+	}
+	return nil
 }
 
 // Client returns the underlying valkey.Client for advanced operations.

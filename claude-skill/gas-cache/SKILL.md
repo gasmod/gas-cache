@@ -33,7 +33,8 @@ import "github.com/gasmod/gas-cache/cachetest"
 | In-memory | `gas-cache/memory` | `gas-cache-memory` | Development, testing, single-instance deployments |
 | Valkey    | `gas-cache/valkey` | `gas-cache-valkey` | Production, multi-instance deployments            |
 
-Both implement `gas.Service` and `gas.CacheProvider`.
+Both implement `gas.Service` and `gas.CacheProvider`. The Valkey backend additionally
+implements `gas.HealthReporter` and `gas.ReadyReporter` (see [Health and Readiness](#health-and-readiness)).
 
 ## CacheProvider Interface
 
@@ -143,6 +144,19 @@ func New(opts ...Option) func(gas.ConfigProvider, gas.Logger) *Service
   initial connection with exponential backoff. The interval starts at
   `ConnRetryInterval` (default 2s) and doubles after each failed attempt.
 
+### Health and Readiness
+
+The Valkey `*Service` implements `gas.HealthReporter` and `gas.ReadyReporter`:
+
+| Method        | Signature                        | Behavior                                                                 |
+|---------------|----------------------------------|--------------------------------------------------------------------------|
+| `CheckHealth` | `(ctx context.Context) error`   | Returns `cache.ErrClosed` when closed, `nil` otherwise. Does not probe the server — the valkey-go client reconnects internally, so transient network errors are not liveness failures. |
+| `CheckReady`  | `(ctx context.Context) error`   | Returns `cache.ErrClosed` when closed, otherwise issues `PING` against the server using the caller's context and returns its error. |
+
+The in-memory backend does **not** implement these interfaces: with no external
+dependency and no warmup, liveness and readiness are fully covered by the gas
+service lifecycle.
+
 ### Direct Client Access
 
 ```go
@@ -193,14 +207,17 @@ import "github.com/gasmod/gas-cache/cachetest"
 
 ```go
 type MockCache struct {
-    GetFn    func(ctx context.Context, key string) ([]byte, error)
-    SetFn    func(ctx context.Context, key string, value []byte, ttl time.Duration) error
-    DeleteFn func(ctx context.Context, key string) error
-    ExistsFn func(ctx context.Context, key string) (bool, error)
-    Calls    []Call
+    GetFn         func(ctx context.Context, key string) ([]byte, error)
+    SetFn         func(ctx context.Context, key string, value []byte, ttl time.Duration) error
+    DeleteFn      func(ctx context.Context, key string) error
+    ExistsFn      func(ctx context.Context, key string) (bool, error)
+    CheckHealthFn func(ctx context.Context) error
+    CheckReadyFn  func(ctx context.Context) error
+    Calls         []Call
 }
 ```
 
+Implements `gas.CacheProvider`, `gas.HealthReporter`, and `gas.ReadyReporter`.
 Each method delegates to its `Fn` field if set, otherwise returns zero value.
 All calls are recorded in `Calls` for assertions. Thread-safe.
 

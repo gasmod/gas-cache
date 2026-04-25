@@ -20,16 +20,20 @@ import (
 // delegates to its corresponding Fn field if set, otherwise returns the
 // zero value. All calls are recorded in the Calls slice for assertions.
 type MockCache struct {
-	GetFn    func(ctx context.Context, key string) ([]byte, error)
-	SetFn    func(ctx context.Context, key string, value []byte, ttl time.Duration) error
-	DeleteFn func(ctx context.Context, key string) error
-	ExistsFn func(ctx context.Context, key string) (bool, error)
-	Calls    []Call
+	GetFn         func(ctx context.Context, key string) ([]byte, error)
+	SetFn         func(ctx context.Context, key string, value []byte, ttl time.Duration) error
+	DeleteFn      func(ctx context.Context, key string) error
+	ExistsFn      func(ctx context.Context, key string) (bool, error)
+	CheckHealthFn func(ctx context.Context) error
+	CheckReadyFn  func(ctx context.Context) error
+	Calls         []Call
 
 	mu sync.Mutex
 }
 
 var _ gas.CacheProvider = (*MockCache)(nil)
+var _ gas.HealthReporter = (*MockCache)(nil)
+var _ gas.ReadyReporter = (*MockCache)(nil)
 
 // Call records a single method invocation on the mock.
 type Call struct {
@@ -77,6 +81,24 @@ func (m *MockCache) Exists(ctx context.Context, key string) (bool, error) {
 		return m.ExistsFn(ctx, key)
 	}
 	return false, nil
+}
+
+// CheckHealth records the call and delegates to CheckHealthFn if set.
+func (m *MockCache) CheckHealth(ctx context.Context) error {
+	m.record("CheckHealth")
+	if m.CheckHealthFn != nil {
+		return m.CheckHealthFn(ctx)
+	}
+	return nil
+}
+
+// CheckReady records the call and delegates to CheckReadyFn if set.
+func (m *MockCache) CheckReady(ctx context.Context) error {
+	m.record("CheckReady")
+	if m.CheckReadyFn != nil {
+		return m.CheckReadyFn(ctx)
+	}
+	return nil
 }
 
 // Reset clears all recorded calls.

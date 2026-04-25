@@ -843,3 +843,80 @@ func TestIntegration_InitBadAddress(t *testing.T) {
 		t.Fatal("Init with bad address hung for >10s")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Health and readiness
+// ---------------------------------------------------------------------------
+
+func TestIntegration_CheckHealth(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	if err := svc.CheckHealth(ctx); err != nil {
+		t.Fatalf("CheckHealth on live service: %v", err)
+	}
+}
+
+func TestIntegration_CheckHealthClosed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	svc := newTestService(t)
+	if err := svc.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	err := svc.CheckHealth(context.Background())
+	if !errors.Is(err, cache.ErrClosed) {
+		t.Errorf("CheckHealth after Close = %v, want ErrClosed", err)
+	}
+}
+
+func TestIntegration_CheckReady(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	svc := newTestService(t)
+	ctx := context.Background()
+
+	if err := svc.CheckReady(ctx); err != nil {
+		t.Fatalf("CheckReady on live service: %v", err)
+	}
+}
+
+func TestIntegration_CheckReadyClosed(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	svc := newTestService(t)
+	if err := svc.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+
+	err := svc.CheckReady(context.Background())
+	if !errors.Is(err, cache.ErrClosed) {
+		t.Errorf("CheckReady after Close = %v, want ErrClosed", err)
+	}
+}
+
+func TestIntegration_CheckReadyCanceledCtx(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
+	svc := newTestService(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	if err := svc.CheckReady(ctx); err == nil {
+		t.Error("CheckReady with canceled context should return an error")
+	}
+}

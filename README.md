@@ -16,7 +16,9 @@ go get github.com/gasmod/gas-cache
 | In-memory      | `github.com/gasmod/gas-cache/memory` | Development, testing, single-instance deployments |
 | Valkey (Redis) | `github.com/gasmod/gas-cache/valkey` | Production, multi-instance deployments            |
 
-Both backends implement `gas.Service` and `gas.CacheProvider`.
+Both backends implement `gas.Service` and `gas.CacheProvider`. The Valkey backend also
+implements `gas.HealthReporter` and `gas.ReadyReporter` for Kubernetes-style liveness
+and readiness probes.
 
 ## Usage
 
@@ -164,6 +166,21 @@ if mock.CallCount("Get") != 1 {
 	t.Error("expected one Get call")
 }
 ```
+
+## Health and Readiness
+
+The Valkey backend implements `gas.HealthReporter` and `gas.ReadyReporter`:
+
+- `CheckHealth(ctx)` — liveness. Returns `cache.ErrClosed` once the service is closed and
+  `nil` otherwise. The valkey-go client reconnects internally, so a transient network
+  failure is *not* a liveness failure — a process restart would not help.
+- `CheckReady(ctx)` — readiness. Issues a `PING` against the Valkey server using the
+  caller's context. Returns an error while the dependency is unreachable so traffic
+  can be drained until it recovers.
+
+The in-memory backend intentionally does not implement these interfaces: it has no
+external dependency and no warmup, so liveness and readiness track the service
+lifecycle that the gas framework already manages.
 
 ## Sentinel Errors
 
