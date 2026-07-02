@@ -1,5 +1,7 @@
 # gas-cache
 
+[![Test](https://github.com/gasmod/gas-cache/actions/workflows/test.yml/badge.svg)](https://github.com/gasmod/gas-cache/actions/workflows/test.yml) [![Go Reference](https://pkg.go.dev/badge/github.com/gasmod/gas-cache.svg)](https://pkg.go.dev/github.com/gasmod/gas-cache) ![Go Version](https://img.shields.io/github/go-mod/go-version/gasmod/gas-cache) [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 Cache service for the [Gas](https://github.com/gasmod/gas) ecosystem. Provides two `gas.CacheProvider` implementations —
 an in-memory backend for development and testing, and a Valkey (Redis-compatible) backend for production.
 
